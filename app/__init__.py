@@ -45,6 +45,10 @@ def create_app(config: Config | None = None) -> Flask:
 
     register_error_handlers(app)
 
+    from app.middleware import register_middleware
+
+    register_middleware(app)
+
     client = httpx.AsyncClient(timeout=cfg.COINGECKO_TIMEOUT_SECONDS)
     app.extensions["http_client"] = client
 
