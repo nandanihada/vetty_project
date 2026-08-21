@@ -12,8 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class WebhookService:
-    def __init__(self, client: httpx.AsyncClient, config: Config) -> None:
-        self._client = client
+    def __init__(self, config: Config) -> None:
         self._url = config.WEBHOOK_URL
         self._timeout = config.WEBHOOK_TIMEOUT_SECONDS
 
@@ -36,11 +35,8 @@ class WebhookService:
         }
 
         try:
-            response = await self._client.post(
-                self._url,
-                json=payload,
-                timeout=self._timeout,
-            )
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                response = await client.post(self._url, json=payload)
             if not response.is_success:
                 logger.error(
                     "Webhook POST failed",

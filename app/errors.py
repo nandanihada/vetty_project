@@ -1,4 +1,5 @@
 from flask import Flask, Response, g, jsonify
+from flask_jwt_extended import JWTManager
 
 
 class AppError(Exception):
@@ -96,3 +97,20 @@ def register_error_handlers(app: Flask) -> None:
         return make_error_response(
             "INTERNAL_SERVER_ERROR", "Internal server error.", request_id, 500
         )
+
+    jwt = app.extensions.get("flask-jwt-extended")
+    if jwt:
+        @jwt.unauthorized_loader
+        def missing_token(reason: str) -> Response:
+            request_id = getattr(g, "request_id", None)
+            return make_error_response("UNAUTHORIZED", reason, request_id, 401)
+
+        @jwt.invalid_token_loader
+        def invalid_token(reason: str) -> Response:
+            request_id = getattr(g, "request_id", None)
+            return make_error_response("UNAUTHORIZED", reason, request_id, 401)
+
+        @jwt.expired_token_loader
+        def expired_token(jwt_header: dict, jwt_payload: dict) -> Response:
+            request_id = getattr(g, "request_id", None)
+            return make_error_response("UNAUTHORIZED", "Token has expired.", request_id, 401)

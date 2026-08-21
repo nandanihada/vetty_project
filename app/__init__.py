@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-import httpx
 from dotenv import load_dotenv
 from flask import Flask
 
 from app.config import Config
-from app.extensions import cache_lock, jwt, make_cache
+from app.extensions import jwt, make_cache
 from app.logging_config import setup_logging
 
 
@@ -26,6 +25,26 @@ def create_app(config: Config | None = None) -> Flask:
     cache = make_cache(cfg)
     jwt.init_app(app)
 
+    from flasgger import Swagger
+    swagger_template = {
+        "swagger": "2.0",
+        "info": {
+            "title": "Vetty Crypto Market API",
+            "description": "REST API for cryptocurrency market data powered by CoinGecko.",
+            "version": "1.0.0",
+        },
+        "securityDefinitions": {
+            "Bearer": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "description": "JWT Bearer token. Format: Bearer <token>",
+            }
+        },
+        "security": [{"Bearer": []}],
+    }
+    Swagger(app, template=swagger_template)
+
     app.config["APP_CONFIG"] = cfg
     app.extensions["cache"] = cache
 
@@ -42,22 +61,9 @@ def create_app(config: Config | None = None) -> Flask:
     app.register_blueprint(market_bp)
 
     from app.errors import register_error_handlers
-
     register_error_handlers(app)
 
     from app.middleware import register_middleware
-
     register_middleware(app)
-
-    client = httpx.AsyncClient(timeout=cfg.COINGECKO_TIMEOUT_SECONDS)
-    app.extensions["http_client"] = client
-
-    @app.teardown_appcontext
-    def close_http_client(exc: BaseException | None) -> None:
-        import asyncio
-
-        c = app.extensions.get("http_client")
-        if c:
-            asyncio.run(c.aclose())
 
     return app

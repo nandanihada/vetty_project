@@ -1,4 +1,5 @@
-import asyncio
+from __future__ import annotations
+
 import hashlib
 import json
 import logging
@@ -17,13 +18,12 @@ logger = logging.getLogger(__name__)
 class CoinGeckoClient:
     def __init__(
         self,
-        client: httpx.AsyncClient,
         config: Config,
         cache: TTLCache,
         lock: threading.Lock,
     ) -> None:
-        self._client = client
         self._base_url = config.COINGECKO_BASE_URL
+        self._timeout = config.COINGECKO_TIMEOUT_SECONDS
         self._cache = cache
         self._lock = lock
 
@@ -43,7 +43,8 @@ class CoinGeckoClient:
     async def _get(self, path: str, **params: Any) -> Any:
         url = f"{self._base_url}{path}"
         try:
-            response = await self._client.get(url, params=params)
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                response = await client.get(url, params=params)
             if not response.is_success:
                 raise UpstreamError(
                     f"CoinGecko returned {response.status_code} for {path}"

@@ -8,6 +8,41 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.post("/auth/login")
 def login():
+    """
+    ---
+    tags:
+      - Auth
+    summary: Login and obtain a JWT token
+    description: Validates credentials and returns a signed JWT access token.
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - username
+            - password
+          properties:
+            username:
+              type: string
+              example: admin
+            password:
+              type: string
+              example: secret
+    responses:
+      200:
+        description: JWT access token
+        schema:
+          type: object
+          properties:
+            access_token:
+              type: string
+      400:
+        description: Missing username or password
+      401:
+        description: Invalid credentials
+    """
     body = request.get_json(silent=True)
     if not body:
         raise ValidationError("'username' and 'password' are required")

@@ -15,10 +15,57 @@ categories_bp = Blueprint("categories", __name__)
 @categories_bp.get("/categories")
 @jwt_required()
 def get_categories():
+    """
+    ---
+    tags:
+      - Categories
+    summary: List all coin categories
+    description: Returns a paginated list of all cryptocurrency categories.
+    security:
+      - Bearer: []
+    parameters:
+      - name: page_num
+        in: query
+        type: integer
+        default: 1
+        description: Page number (>= 1)
+      - name: per_page
+        in: query
+        type: integer
+        default: 10
+        description: Items per page (1-250)
+    responses:
+      200:
+        description: Paginated list of categories
+        schema:
+          type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  category_id:
+                    type: string
+                    example: layer-1
+                  name:
+                    type: string
+                    example: Layer 1 (L1)
+            pagination:
+              type: object
+              properties:
+                page_num:
+                  type: integer
+                per_page:
+                  type: integer
+                total_items:
+                  type: integer
+      401:
+        description: Missing or invalid JWT token
+    """
     page_num, per_page = parse_pagination_params(request)
 
     client = CoinGeckoClient(
-        client=current_app.extensions["http_client"],
         config=current_app.config["APP_CONFIG"],
         cache=current_app.extensions["cache"],
         lock=cache_lock,
